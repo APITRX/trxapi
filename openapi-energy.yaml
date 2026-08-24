@@ -1,0 +1,188 @@
+openapi: 3.0.3
+info:
+  title: TRXAPI Energy API
+  version: "1.0"
+  description: |
+    TRON energy delegation REST API by TRXAPI (www.trxapi.io).
+    Operated by Coinepay Pte. Ltd.; technology and ecosystem maintenance by the fintech firm CoinePay.
+
+    All endpoints authenticate via the `apikey` query parameter (create keys in the customer
+    center at https://login.trxapi.io/). Every response uses the JSON envelope
+    `{code, message, data}` — branch on `code` (200 = success), never on `message`.
+
+    Business error codes: 500 request failed / bad params · 501 apikey missing or disabled ·
+    502 insufficient prepaid balance · 429 rate limited (direct node API only) ·
+    702001 address already activated (not billed) · 100002 delegation channel busy
+    (not billed, auto-refunded).
+
+    The direct node proxy (`/api/v1/openapi/node/wallet/{method}` and
+    `/api/v1/openapi/node/walletsolidity/{method}`) forwards requests verbatim to a TRON
+    node and returns the node's native response — see https://www.trxapi.io/docs/node.html.
+  contact:
+    email: admin@coinepay.cc
+    url: https://www.trxapi.io/docs/energy.html
+servers:
+  - url: https://api.trxapi.io
+paths:
+  /api/v1/openapi/getenergy:
+    get:
+      summary: Rent energy (create a delegation order)
+      description: >
+        Delegates energy to a TRON address. On success the fee is charged from the prepaid
+        balance; if the order ultimately fails, the fee is refunded automatically.
+        The receiving address must already be activated.
+      operationId: getEnergy
+      parameters:
+        - $ref: "#/components/parameters/apikey"
+        - name: add
+          in: query
+          required: true
+          description: TRON address to receive energy (Base58, starts with T, 34 chars)
+          schema: {type: string, example: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"}
+        - name: value
+          in: query
+          required: true
+          description: Energy amount
+          schema: {type: integer, enum: [65000, 130000]}
+        - name: hour
+          in: query
+          required: true
+          description: Delegation duration in hours
+          schema: {type: integer, enum: [1, 24]}
+        - name: traceId
+          in: query
+          required: false
+          description: Optional trace ID (max 36 chars), echoed back for reconciliation
+          schema: {type: string, maxLength: 36}
+      responses:
+        "200":
+          description: JSON envelope; code=200 on success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Envelope"}
+              example:
+                code: 200
+                message: SUCCESS
+                data: {orderId: "10001", amount: "16.9", balance: "1263.60", txid: "a1b2c3d4..."}
+                traceId: "7c2c1d6f..."
+  /api/v1/openapi/activation:
+    get:
+      summary: Activate a never-used TRON address
+      description: >
+        Activates an unactivated TRON address on-chain and returns the activation tx hash.
+        Already-activated addresses return code 702001 (not billed).
+      operationId: activateAddress
+      parameters:
+        - $ref: "#/components/parameters/apikey"
+        - name: add
+          in: query
+          required: true
+          description: TRON address to activate (Base58, starts with T, 34 chars)
+          schema: {type: string}
+      responses:
+        "200":
+          description: JSON envelope; code=200 on success
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Envelope"}
+              example:
+                code: 200
+                message: SUCCESS
+                data: {add: "TR7NHqjeKQx...", txid: "a1b2c3d4...", amount: "2.5"}
+  /api/v1/openapi/order:
+    get:
+      summary: Query an order's status
+      description: Poll after ordering until status becomes completed or failed, or use the webhook.
+      operationId: getOrder
+      parameters:
+        - $ref: "#/components/parameters/apikey"
+        - name: orderId
+          in: query
+          required: true
+          description: Order ID returned by the getenergy endpoint
+          schema: {type: string}
+      responses:
+        "200":
+          description: JSON envelope; data.status is processing | completed | failed
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Envelope"}
+              example:
+                code: 200
+                message: SUCCESS
+                data: {orderId: "10001", status: "completed", txid: "a1b2c3d4..."}
+  /api/v1/openapi/balance:
+    get:
+      summary: Query the merchant prepaid balance
+      description: >
+        Returns the merchant's prepaid service-account balance on TRXAPI (TRX-denominated).
+        It does not represent any external wallet balance.
+      operationId: getBalance
+      parameters:
+        - $ref: "#/components/parameters/apikey"
+      responses:
+        "200":
+          description: JSON envelope
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Envelope"}
+              example:
+                code: 200
+                message: SUCCESS
+                data: {balance: "1280.50", currency: "TRX"}
+webhooks:
+  orderTerminal:
+    post:
+      summary: Order terminal-state callback
+      description: >
+        Sent to the callback URL configured in the customer center when an order reaches a
+        terminal state. Headers: X-Timestamp (unix seconds) and X-Signature
+        ("sha256=" + hex(HMAC-SHA256(secret, timestamp + "." + rawBody))).
+        Verify over the RAW body; respond 2xx to acknowledge. Retries with backoff at
+        1m / 5m / 30m / 2h / 6h, up to 6 attempts. Handle idempotently by orderId.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event: {type: string, enum: [order.completed, order.failed]}
+                orderId: {type: string}
+                status: {type: string, enum: [completed, failed]}
+                txid: {type: string, description: On-chain tx hash (empty on failure)}
+                timestamp: {type: integer, description: Unix seconds when sent}
+            example:
+              event: order.completed
+              orderId: "10001"
+              status: completed
+              txid: "a1b2c3d4..."
+              timestamp: 1712345678
+      responses:
+        "200":
+          description: Any 2xx acknowledges delivery
+components:
+  parameters:
+    apikey:
+      name: apikey
+      in: query
+      required: true
+      description: Merchant API key, created in the customer center (keep it server-side)
+      schema: {type: string}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 200 = success; other values are business error codes (see info)
+        message:
+          type: string
+          description: Human-readable text — do not branch on it
+        data:
+          type: object
+          nullable: true
+          description: Endpoint-specific payload
+        traceId:
+          type: string
+          description: Echoed trace ID when provided
+      required: [code, message]
