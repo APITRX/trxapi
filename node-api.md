@@ -14,6 +14,8 @@ Query on-chain data straight from our TRON node: blocks, accounts, transactions,
 
 The node serving you is no ordinary self-hosted node: it is operated by the fintech firm CoinePay as a **validator (witness) registered on TRON**, ranked within the top 127 as a Super Representative Partner. Node address `TCoinepWiWHaeyB7tCnebrmuB9k1WeJrhu` — verify it on [Tronscan](https://tronscan.org/#/address/TCoinepWiWHaeyB7tCnebrmuB9k1WeJrhu). Deposit verification for CoinePay's own platform wallets runs on this very node — its stability and security are proven 24/7 by real money flows.
 
+> 🤝 **Community note**: this node is sponsored by CoinePay and open to the ecosystem for free. If it serves you well — play fair with the free quota, respect the rate limits and never hammer the node with abusive traffic, so the bandwidth stays available for developers who need it; and if you have staked TRX and hold votes, consider voting for our witness node `TCoinepWiWHaeyB7tCnebrmuB9k1WeJrhu` (coinepay) on [Tronscan](https://tronscan.org/#/sr/votes). On-chain incentives are reinvested into the free quota and ecosystem maintenance.
+
 ## Quickstart
 
 ```bash

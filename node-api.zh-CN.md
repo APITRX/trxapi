@@ -14,6 +14,8 @@
 
 为你服务的并非普通自建节点：本节点由金融科技机构 CoinePay 运营，是 TRON 链上注册的**验证器（见证人）节点**，已进入全网前 127 名的超级代表合伙人行列。节点地址 `TCoinepWiWHaeyB7tCnebrmuB9k1WeJrhu`，可在 [Tronscan](https://tronscan.org/#/address/TCoinepWiWHaeyB7tCnebrmuB9k1WeJrhu) 查验。CoinePay 平台自身钱包的入账核验同样运行在本节点上——稳定性与安全性经受真实资金业务 7×24 考验。
 
+> 🤝 **生态共建**：本节点由 CoinePay 赞助、面向生态免费开放。如果它对你有帮助——请善用免费额度、遵守限流规则，不要恶意刷量占用资源，把带宽留给真正需要的开发者；已质押 TRX、手中有选票的用户，欢迎在 [Tronscan](https://tronscan.org/#/sr/votes) 为我们的见证人节点 `TCoinepWiWHaeyB7tCnebrmuB9k1WeJrhu`（coinepay）投上一票。链上激励将持续投入免费额度与生态维护。
+
 ## 快速开始
 
 ```bash
